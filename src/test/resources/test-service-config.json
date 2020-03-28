@@ -1,0 +1,28 @@
+{
+  "loadBalancingPolicy": "pick_first",
+  "methodConfig": [
+    {
+      "name": [
+        {
+          "service": "helloworld.Greeter",
+          "method": "SayHello"
+        }
+      ],
+      "waitForReady": false,
+      "retryPolicy": {
+        "maxAttempts": 3,
+        "initialBackoff": "2.1s",
+        "maxBackoff": "2.2s",
+        "backoffMultiplier": 3,
+        "retryableStatusCodes": [
+          "UNAVAILABLE",
+          "RESOURCE_EXHAUSTED"
+        ]
+      }
+    }
+  ],
+  "retryThrottling": {
+    "maxTokens": 10,
+    "tokenRatio": 0.1
+  }
+}
