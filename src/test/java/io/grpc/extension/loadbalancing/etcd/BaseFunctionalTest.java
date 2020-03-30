@@ -19,10 +19,12 @@ import org.junit.Rule;
 
 import io.etcd.jetcd.Client;
 import io.etcd.jetcd.launcher.junit4.EtcdClusterResource;
+import io.grpc.NameResolverRegistry;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.examples.helloworld.GreeterImpl;
 import io.grpc.extension.lifecycle.ListenableServerStateImpl;
+import io.grpc.extension.loadbalancing.etcd.client.EtcdNameResolverProvider;
 import io.grpc.extension.loadbalancing.etcd.server.EtcdServiceRegistry;
 import io.grpc.extension.loadbalancing.etcd.domain.Configuration;
 import io.grpc.extension.test.utils.HeaderServerInterceptor;
@@ -36,12 +38,15 @@ public abstract class BaseFunctionalTest {
 	@Rule
 	public final EtcdClusterResource etcd = new EtcdClusterResource( "test-etcd", 1 );
 	protected Client etcdClient = null;
+	protected EtcdNameResolverProvider nameResolver = null;
 	protected Server gRpcServer = null;
 	protected final Configuration options = Configuration.builder().withKeyPrefix( "services" ).build();
 
 	@Before
 	public void setUp() throws Exception {
 		etcdClient = Client.builder().endpoints( etcd.getClientEndpoints() ).build();
+		nameResolver = new EtcdNameResolverProvider( etcdClient, options );
+		NameResolverRegistry.getDefaultRegistry().register( nameResolver );
 		gRpcServer = createAndStartServer();
 	}
 
@@ -50,6 +55,10 @@ public abstract class BaseFunctionalTest {
 		if ( gRpcServer != null && ! gRpcServer.isShutdown() ) {
 			shutdownServer( gRpcServer );
 			gRpcServer = null;
+		}
+		if ( nameResolver != null ) {
+			NameResolverRegistry.getDefaultRegistry().deregister( nameResolver );
+			nameResolver = null;
 		}
 		if ( etcdClient != null ) {
 			etcdClient.close();

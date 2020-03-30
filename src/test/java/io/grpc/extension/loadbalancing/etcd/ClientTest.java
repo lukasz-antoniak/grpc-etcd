@@ -33,7 +33,6 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.examples.helloworld.GreeterGrpc;
 import io.grpc.examples.helloworld.HelloReply;
 import io.grpc.examples.helloworld.HelloRequest;
-import io.grpc.extension.loadbalancing.etcd.client.EtcdNameResolverProvider;
 import io.grpc.extension.test.utils.HeaderClientInterceptor;
 
 public class ClientTest extends BaseFunctionalTest {
@@ -44,7 +43,6 @@ public class ClientTest extends BaseFunctionalTest {
 		super.setUp();
 		channel = ManagedChannelBuilder.forTarget( "etcd://" + GreeterGrpc.SERVICE_NAME )
 				.defaultLoadBalancingPolicy( "round_robin" )
-				.nameResolverFactory( new EtcdNameResolverProvider( etcdClient, options ) )
 				.usePlaintext().build();
 		client = GreeterGrpc.newBlockingStub( channel ).withInterceptors( new HeaderClientInterceptor() );
 		HeaderClientInterceptor.requestCountPerInstance.clear();
@@ -196,8 +194,7 @@ public class ClientTest extends BaseFunctionalTest {
 		Server server = null;
 
 		final ManagedChannel channel = ManagedChannelBuilder.forTarget( "etcd://" + GreeterGrpc.SERVICE_NAME )
-				.defaultLoadBalancingPolicy( "round_robin" )
-				.nameResolverFactory( new EtcdNameResolverProvider( etcdClient, options ) ).usePlaintext().build();
+				.defaultLoadBalancingPolicy( "round_robin" ).usePlaintext().build();
 		final GreeterGrpc.GreeterBlockingStub client = GreeterGrpc.newBlockingStub( channel );
 
 		try {

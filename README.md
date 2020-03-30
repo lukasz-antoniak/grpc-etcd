@@ -49,10 +49,13 @@ Client etcdClient = Client.builder().endpoints( "http://localhost:2379" ).build(
 // choose service discovery options
 Configuration options = Configuration.builder().withKeyPrefix( "services" ).build()
 
+// register ETCD name resolver
+NameResolverRegistry.getDefaultRegistry().register(
+    new EtcdNameResolverProvider( etcdClient, options )
+);
+
 // create gRPC client
-ManagedChannel channel = ManagedChannelBuilder.forTarget( "etcd://helloworld.Greeter" )
-    .nameResolverFactory( new EtcdNameResolverProvider( etcdClient, options ) )
-    .build();
+ManagedChannel channel = ManagedChannelBuilder.forTarget( "etcd://helloworld.Greeter" ).build();
 ```
 
 ## Documentation
@@ -108,6 +111,20 @@ $ export SERVICE_CONFIG="
 "
 $ etcdctl put helloworld.Greeter "$( echo $SERVICE_CONFIG )"
 ```
+
+### Example
+
+Assume we have deployed gRPC service `helloworld.Greeter` with two instances across servers `machine1` and `machine2`.
+Property `keyPrefix` has been configured to `services`. The following ETCD resources will be created.
+
+| Key                                            | Value                    | Description                                                                   |
+|------------------------------------------------|--------------------------|-------------------------------------------------------------------------------|
+| `services/helloworld.Greeter`                  | `${service config JSON}` | Manually inserted service configuration in JSON format.                       |
+| `services/helloworld.Greeter/machine1:1234`    | `{"dataCenter": "DC1"}`  | Custom JSON representing endpoint which can be used by load balancing policy. |
+| `services/helloworld.Greeter/machine2:2345`    | `{"dataCenter": "DC2"}`  |                                                                               |
+
+gRPC clients listen to all updates to keys with `services/helloworld.Greeter` prefix. They act accordingly when
+service configuration is updated or service endpoints join or leave the cluster.
 
 ## Build from Source
 
